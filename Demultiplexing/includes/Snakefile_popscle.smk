@@ -21,8 +21,6 @@ rule popscle_pileup:
     threads: popscle_dict["pileup_threads"]
     params:
         out = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
-        sif = input_dict["singularity_image"],
-        bind = bind_path, 
         tag_group = popscle_dict["tag_group"],
         tag_UMI = popscle_dict["tag_UMI"],
         cap_BQ = popscle_extra_dict["cap_BQ"],
@@ -35,7 +33,7 @@ rule popscle_pileup:
     log: output_dict["output_dir"] + "/logs/popscle_pileup.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} popscle dsc-pileup \
+        popscle dsc-pileup \
             --sam {input.bam} \
             --tag-group {params.tag_group} \
             --tag-UMI {params.tag_UMI} \
@@ -68,8 +66,6 @@ rule popscle_demuxlet:
     params:
         pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
         out = output_dict["output_dir"] + "/{pool}/popscle/demuxlet/",
-        sif = input_dict["singularity_image"],
-        bind = bind_path,
         field = popscle_dict["genotype_field"],
         geno_error_offset = popscle_extra_dict["geno_error_offset"],
         geno_error_coeff = popscle_extra_dict["geno_error_coeff"],
@@ -87,7 +83,7 @@ rule popscle_demuxlet:
     log: output_dict["output_dir"] + "/logs/popscle_demuxlet.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} popscle demuxlet \
+        popscle demuxlet \
             --plp {params.pileup} \
             --vcf {input.snps} \
             --field {params.field} \
@@ -123,24 +119,21 @@ rule demuxlet_results_temp:
         mem_per_thread_gb=1,
         disk_per_thread_gb=1
     threads: 1
-    params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
     log: output_dict["output_dir"] + "/logs/demuxlet_results_temp.{pool}.log"
     shell:
         """
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$13,$14,$19,$20}}' {input.demuxlet} | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/SNG/singlet/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/DBL/doublet/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/AMB/unassigned/g" | \
-            singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/NUM.SNPS/nSNP/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/DROPLET.TYPE/DropletType/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.GUESS/Assignment/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/singlet.BEST.LLK/SingletLLK/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/doublet.BEST.LLK/DoulbetLLK/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/DIFF.LLK.singlet.doublet/DiffLLK/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "1s/\t/\tdemuxlet_/g" | \
-            singularity exec --bind {params.bind} {params.sif} sed "s/BARCODE/Barcode/g" | \
-            singularity exec --bind {params.bind} {params.sif} awk 'NR<2{{print $0;next}}{{print $0 | "sort -k1"}}'  > {output}
+            awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$13,$14,$19,$20}}' {input.demuxlet} | \
+            sed "s/SNG/singlet/g" | \
+            sed "s/DBL/doublet/g" | \
+            sed "s/AMB/unassigned/g" | \
+            awk 'BEGIN{{FS=OFS="\t"}} $3=="doublet" {{$4="doublet"}}1' | \
+            sed "s/NUM.SNPS/nSNP/g" | \
+            sed "s/DROPLET.TYPE/DropletType/g" | \
+            sed "s/singlet.BEST.GUESS/Assignment/g" | \
+            sed "s/singlet.BEST.LLK/SingletLLK/g" | \
+            sed "s/doublet.BEST.LLK/DoulbetLLK/g" | \
+            sed "s/DIFF.LLK.singlet.doublet/DiffLLK/g" | \
+            sed "1s/\t/\tdemuxlet_/g" | \
+            sed "s/BARCODE/Barcode/g" | \
+            awk 'NR<2{{print $0;next}}{{print $0 | "sort -k1"}}'  > {output}
         """

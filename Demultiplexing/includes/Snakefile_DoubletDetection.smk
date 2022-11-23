@@ -15,13 +15,10 @@ rule make_DoubletDetection_selection_df:
         mem_per_thread_gb = 1,
         disk_per_thread_gb = 1
     threads: 1
-    params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
     log: output_dict["output_dir"] + "/logs/make_DoubletDetection_selection_df.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\t"}}{{print $1 "\t"}}' {input} | sed "1s/.*/Pool\tDoubletDetection_PASS_FAIL/" > {output} 2> {log}
+        awk 'BEGIN{{OFS=FS="\t"}}{{print $1 "\t"}}' {input} | sed "1s/.*/Pool\tDoubletDetection_PASS_FAIL/" > {output} 2> {log}
         """
 
 if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetection/DoubletDetection_manual_selection.tsv"):
@@ -68,8 +65,6 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
         params:
             script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletDetection.py",
             out = output_dict["output_dir"] + "/{pool}/DoubletDetection/",
-            sif = input_dict["singularity_image"],
-            bind = bind_path,
             n_iterations = n_iterations,
             phenograph = phenograph,
             standard_scaling = standard_scaling,
@@ -84,7 +79,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
                 echo "No need to rerun DoubletDetection since the parameters have alreeady been chosen. Will move on to sorting results and merging with results from all other softwares"
             elif [ {params.ready} == "False" ]
             then 
-                singularity exec --bind {params.bind} {params.sif} python {params.script} \
+                python {params.script} \
                     --counts_matrix {input.matrix} \
                     --barcodes {input.barcodes} \
                     --n_iterations {params.n_iterations} \
@@ -93,13 +88,13 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
                     --p_thresh {params.p_thresh} \
                     --voter_thresh {params.voter_thresh} \
                     -o {params.out}
-				singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
-				singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {output.log}
-				singularity exec --bind {params.bind} {params.sif} echo "The number of iterations used to determine doublets:" {params.n_iterations} >> {output.log}
-				singularity exec --bind {params.bind} {params.sif} echo "The phenograph was was used:" {params.phenograph} >> {output.log}
-				singularity exec --bind {params.bind} {params.sif} echo "The standard scaling was used:" {params.standard_scaling} >> {output.log}
-				singularity exec --bind {params.bind} {params.sif} echo "The p threshold was used:" {params.p_thresh} >> {output.log}
-				singularity exec --bind {params.bind} {params.sif} echo "The voter threshold is:" {params.voter_thresh} >> {output.log}
+				echo "The pool:" {wildcards.pool} >> {output.log}
+				echo "This was a" {params.step} "run" >> {output.log}
+				echo "The number of iterations used to determine doublets:" {params.n_iterations} >> {output.log}
+				echo "The phenograph was was used:" {params.phenograph} >> {output.log}
+				echo "The standard scaling was used:" {params.standard_scaling} >> {output.log}
+				echo "The p threshold was used:" {params.p_thresh} >> {output.log}
+				echo "The voter threshold is:" {params.voter_thresh} >> {output.log}
             fi
             """
             
@@ -114,22 +109,20 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             disk_per_thread_gb=lambda wildcards, attempt: attempt * 1
         threads: 1
         params:
-            sif = input_dict["singularity_image"],
-            bind = bind_path,
             ready = ready
         log: output_dict["output_dir"] + "/logs/DoubletDetection_check_user_input.{pool}.log"
         shell:
             """
             if [ {params.ready} == "True" ]
             then 
-                singularity exec --bind {params.bind} {params.sif} echo "Looks like you put PASS into all the rows of DoubletDetection_manual_selection.tsv file." > {log}
-                singularity exec --bind {params.bind} {params.sif} echo "The DoubletDetection check is done and the next step of the pipeline will proceed" >> {log}
-                singularity exec --bind {params.bind} {params.sif} awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' {input.results} > {output}
+                echo "Looks like you put PASS into all the rows of DoubletDetection_manual_selection.tsv file." > {log}
+                echo "The DoubletDetection check is done and the next step of the pipeline will proceed" >> {log}
+                awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' {input.results} > {output}
             elif [ {params.ready} == "False" ]
             then
-                singularity exec --bind {params.bind} {params.sif} echo "You haven't put PASS/FAIL values into the DoubletDetection_manual_selection.tsv file." > {log}
-                singularity exec --bind {params.bind} {params.sif} echo "Please check the DoubletDetection outputs and decide if the pools passed - rerun any of the pools where the doublet numbers don't reach convergence using the manual selections (see the docs)" >> {log}
-                singularity exec --bind {params.bind} {params.sif} echo "Once you are happy with the results, input PASS into the second column of the DoubletDetection_manual_selection.tsv file and restart the snakemake pipeline" >> {log}
-                singularity exec --bind {params.bind} {params.sif} echo 1
+                echo "You haven't put PASS/FAIL values into the DoubletDetection_manual_selection.tsv file." > {log}
+                echo "Please check the DoubletDetection outputs and decide if the pools passed - rerun any of the pools where the doublet numbers don't reach convergence using the manual selections (see the docs)" >> {log}
+                echo "Once you are happy with the results, input PASS into the second column of the DoubletDetection_manual_selection.tsv file and restart the snakemake pipeline" >> {log}
+                echo 1
             fi
             """

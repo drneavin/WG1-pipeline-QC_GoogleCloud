@@ -15,13 +15,10 @@ rule make_scrublet_selection_df:
         mem_per_thread_gb = 1,
         disk_per_thread_gb = 1
     threads: 1
-    params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
     log: output_dict["output_dir"] + "/logs/make_scrublet_selection_df.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{OFS=FS="\t"}}{{print $1 "\t"}}' {input} | sed "1s/.*/Pool\tscrublet_Percentile/" > {output} 2> {log}
+        awk 'BEGIN{{OFS=FS="\t"}}{{print $1 "\t"}}' {input} | sed "1s/.*/Pool\tscrublet_Percentile/" > {output} 2> {log}
         """
 
 if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
@@ -67,10 +64,8 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
             disk_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
         threads: scrublet_dict["scrublet_threads"]
         params:
-            sif = input_dict["singularity_image"],
             out = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/",
             script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scrublet_pipeline.py",
-            bind = bind_path,
             sim_dbl = sim_dbl,
             min_counts = min_counts,
             min_cells = min_cells,
@@ -87,7 +82,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
             then 
                 if [ {params.step} == "default" ]
                 then
-                    singularity exec --bind {params.bind} {params.sif} python {params.script} \
+                    python {params.script} \
                         --counts_matrix {input.matrix} \
                         --barcodes {input.barcodes} \
                         --sim_doublet_ratio {params.sim_dbl} \
@@ -98,7 +93,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         -o {params.out}
                 elif [ {params.step} == "manual" ]
                 then
-                    singularity exec --bind {params.bind} {params.sif} python {params.script} \
+                    python {params.script} \
                         --counts_matrix {input.matrix} \
                         --barcodes {input.barcodes} \
                         --sim_doublet_ratio {params.sim_dbl} \
@@ -109,13 +104,13 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
                         -o {params.out} \
                         --scrublet_doublet_threshold {params.scrublet_doublet_threshold}
                 fi
-                singularity exec --bind {params.bind} {params.sif} echo "The pool:" {wildcards.pool} >> {output.log}
-                singularity exec --bind {params.bind} {params.sif} echo "This was a" {params.step} "run" >> {output.log}
-                singularity exec --bind {params.bind} {params.sif} echo "The number of doublets simulated per droplet:" {params.sim_dbl} >> {output.log}
-                singularity exec --bind {params.bind} {params.sif} echo "The min number of counts used for filtering cells prior to PCA:" {params.min_counts} >> {output.log}
-                singularity exec --bind {params.bind} {params.sif} echo "The number of cells for a gene to be expressed in for filtering cells prior to PCA:" {params.min_cells} >> {output.log}
-                singularity exec --bind {params.bind} {params.sif} echo "The number of principle components used to embed the trnscriptomes prior to k-nearest-neighbor graph:" {params.n_prin_comps} >> {output.log}
-                singularity exec --bind {params.bind} {params.sif} echo "The manual doublet threshold set:" {params.scrublet_doublet_threshold} >> {output.log}
+                echo "The pool:" {wildcards.pool} >> {output.log}
+                echo "This was a" {params.step} "run" >> {output.log}
+                echo "The number of doublets simulated per droplet:" {params.sim_dbl} >> {output.log}
+                echo "The min number of counts used for filtering cells prior to PCA:" {params.min_counts} >> {output.log}
+                echo "The number of cells for a gene to be expressed in for filtering cells prior to PCA:" {params.min_cells} >> {output.log}
+                echo "The number of principle components used to embed the trnscriptomes prior to k-nearest-neighbor graph:" {params.n_prin_comps} >> {output.log}
+                echo "The manual doublet threshold set:" {params.scrublet_doublet_threshold} >> {output.log}
             fi
             [[ -s {output.results} ]]
             echo $?
@@ -133,22 +128,20 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
             disk_per_thread_gb=lambda wildcards, attempt: attempt * 1
         threads: 1
         params:
-            sif = input_dict["singularity_image"],
-            bind = bind_path, 
             ready = ready
         log: output_dict["output_dir"] + "/logs/scrublet_check_user_input.{pool}_{pctl}.log"
         shell:
             """
             if [ {params.ready} == "True" ]
             then 
-                singularity exec --bind {params.bind} {params.sif} echo "Looks like you put percentile selections into the scrublet_gene_pctl.txt file." 2> {log}
-                singularity exec --bind {params.bind} {params.sif} echo "The scrublet check is done and the next step of the pipeline will proceed" 2>> {log}
-                singularity exec --bind {params.bind} {params.sif} awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' {input.results} > {output}
+                echo "Looks like you put percentile selections into the scrublet_gene_pctl.txt file." 2> {log}
+                echo "The scrublet check is done and the next step of the pipeline will proceed" 2>> {log}
+                awk 'NR<2{{print $0;next}}{{print $0| "sort -k1,1"}}' {input.results} > {output}
             elif [ {params.ready} == "False" ]
             then
-                singularity exec --bind {params.bind} {params.sif} echo "You haven't put the scrublet gene percentile selection for each of the pools into the scrublet_gene_pctl.txt" 2> {log}
-                singularity exec --bind {params.bind} {params.sif} echo "Please check the scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold"
-                singularity exec --bind {params.bind} {params.sif} echo "Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the scrublet_gene_pctl.txt file and restart the snakemake pipeline"
-                singularity exec --bind {params.bind} {params.sif} echo 1
+                echo "You haven't put the scrublet gene percentile selection for each of the pools into the scrublet_gene_pctl.txt" 2> {log}
+                echo "Please check the scrublet outputs and choose the best variable genes percentile - rerun any of the pools where the thresholding failed (see the docs) to choose a manual threshold"
+                echo "Once you are happy with the thresholding, input the correct gene percentiles (as numbers between 0 and 100) into the second column of the scrublet_gene_pctl.txt file and restart the snakemake pipeline"
+                echo 1
             fi
             """

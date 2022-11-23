@@ -22,9 +22,6 @@ rule join_results:
         mem_per_thread_gb=5,
         disk_per_thread_gb=5
     threads: 1
-    params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
     log: output_dict["output_dir"] + "/logs/join_results.{pool}.log"
     shell:
         """
@@ -51,16 +48,14 @@ rule final_assignments:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalAssignments_memory"]
     threads: CombineResults_dict["FinalAssignments_threads"]
     params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path,
         out = output_dict["output_dir"],
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/FinalBarcodeAssignments.R"
     log: output_dict["output_dir"] + "/logs/final_assignments.{pool}.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} echo {params.out} > {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {wildcards.pool} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
+        echo {params.out} > {output.variables}
+        echo {wildcards.pool} >> {output.variables}
+        Rscript {params.script} {output.variables}
         [[ -s {output.figure} ]]
         echo $?
         """
@@ -77,13 +72,10 @@ rule echo_final_assignments:
         mem_per_thread_gb=1,
         disk_per_thread_gb=1
     threads: 1
-    params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
     log: output_dict["output_dir"] + "/logs/echo_final_assignments.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} echo {input} | singularity exec --bind {params.bind} {params.sif} tr ' ' '\n' >> {output}
+        echo {input} | tr ' ' '\n' >> {output}
         """
 
 rule final_assignments_check:
@@ -97,14 +89,11 @@ rule final_assignments_check:
         mem_per_thread_gb=1,
         disk_per_thread_gb=1
     threads: 1
-    params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path
     log: output_dict["output_dir"] + "/logs/final_assignments_check.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} cat {input.assignment_list} > {output.assignment_list}
-        singularity exec --bind {params.bind} {params.sif} awk 'BEGIN{{FS=OFS="\t"}}{{print $1}}' {input.meta} | singularity exec --bind {params.bind} {params.sif} tail -n+2 > {output.meta}
+        cat {input.assignment_list} > {output.assignment_list}
+        awk 'BEGIN{{FS=OFS="\t"}}{{print $1}}' {input.meta} | tail -n+2 > {output.meta}
         if [ "$(wc -l < {output.meta})" -eq "$(wc -l < {output.assignment_list})" ]
         then 
             echo 0
@@ -129,15 +118,13 @@ rule expected_observed_numbers:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["expected_observed_numbers_memory"]
     threads: CombineResults_dict["expected_observed_numbers_threads"]
     params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path,
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/expected_observed_individuals_doublets.R",
         out = output_dict["output_dir"] + "/QC_figures/",
         basedir = output_dict["output_dir"]
     log: output_dict["output_dir"] + "/logs/expected_observed_numbers.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {input.sample_sheet} {params.out} {params.basedir}
+        Rscript {params.script} {input.sample_sheet} {params.out} {params.basedir}
         """
 
 
@@ -170,8 +157,6 @@ rule QC_plots:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalQC_memory"]
     threads: CombineResults_dict["FinalQC_threads"]
     params:
-        sif = input_dict["singularity_image"],
-        bind = bind_path,
         script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Singlet_QC_Figures.R",
         main_dir = output_dict["output_dir"],
         dirs10x = output_dict["output_dir"] + '/file_directories.txt',
@@ -181,13 +166,13 @@ rule QC_plots:
     log: output_dict["output_dir"] + "/logs/QC_plots.log"
     shell:
         """
-        singularity exec --bind {params.bind} {params.sif} echo {params.main_dir} > {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {input.pools} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.dirs10x} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.out} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.rb_genes} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} echo {params.mt_genes} >> {output.variables}
-        singularity exec --bind {params.bind} {params.sif} Rscript {params.script} {output.variables}
+        echo {params.main_dir} > {output.variables}
+        echo {input.pools} >> {output.variables}
+        echo {params.dirs10x} >> {output.variables}
+        echo {params.out} >> {output.variables}
+        echo {params.rb_genes} >> {output.variables}
+        echo {params.mt_genes} >> {output.variables}
+        Rscript {params.script} {output.variables}
         [[ -s {output.fig18} ]]
         echo $?
         """
