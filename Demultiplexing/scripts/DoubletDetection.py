@@ -41,7 +41,7 @@ args = parser.parse_args()
 
 print(args.p_thresh)
 print(args.voter_thresh)
-print(args.phenograph)
+
 
 
 if args.clustering_kwargs == 'True':
