@@ -79,8 +79,8 @@ rule souporcell_results_temp:
     output:
         output_dict["output_dir"] + "/{pool}/CombinedResults/souporcell_results.txt"
     resources:
-        mem_per_thread_gb=1,
-        disk_per_thread_gb=1
+        mem_per_thread_gb=15000,
+        disk_per_thread_gb=15000
     threads: 1
     log: output_dict["output_dir"] + "/logs/souporcell_results_temp.{pool}.log"
     shell:
@@ -102,21 +102,20 @@ rule souporcell_results_temp:
 rule souporcell_pool_vcf:
     input:
         genotypes = input_dict["snp_genotypes_filepath"], 
-        cluster_geno = output_dict["output_dir"] + "/{pool}/souporcell/cluster_genotypes.vcf"
+        cluster_geno = output_dict["output_dir"] + "/{pool}/souporcell/cluster_genotypes.vcf",
+        individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     output:
         filtered_refs = output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf.gz",
         filtered_refs_temp = output_dict["output_dir"] + "/{pool}/souporcell/Individual_genotypes_subset.vcf"
     resources:
-        mem_per_thread_gb=5,
-        disk_per_thread_gb=5
+        mem_per_thread_gb=15000,
+        disk_per_thread_gb=15000
     threads: 1
-    params:
-        individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     log: output_dict["output_dir"] + "/logs/souporcell_pool_vcf.{pool}.log"
     shell:
         """
         bedtools intersect -a {input.genotypes} -b {input.cluster_geno} -f 1.0 -r -wa -header > {output.filtered_refs_temp} 2> {log}
-        bcftools view -S {params.individuals} -Oz -o {output.filtered_refs} {output.filtered_refs_temp} 2>> {log}
+        bcftools view -S {input.individuals} -Oz -o {output.filtered_refs} {output.filtered_refs_temp} 2>> {log}
         """
 
 
