@@ -63,7 +63,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/DoubletDetecti
             disk_per_thread_gb = lambda wildcards, attempt: attempt * DoubletDetection_dict["DoubletDetection_memory"]
         threads: DoubletDetection_dict["DoubletDetection_threads"]
         params:
-            script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/DoubletDetection.py",
+            script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/DoubletDetection.py",
             out = output_dict["output_dir"] + "/{pool}/DoubletDetection/",
             n_iterations = n_iterations,
             phenograph = phenograph,

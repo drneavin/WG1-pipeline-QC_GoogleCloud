@@ -12,7 +12,7 @@ import pandas as pd
 
 # Load read10x function from mods directory
 
-mods_path = "/opt/WG1-pipeline-QC/Demultiplexing/mods"
+mods_path = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/mods"
 sys.path.append(mods_path)
 import read10x
 

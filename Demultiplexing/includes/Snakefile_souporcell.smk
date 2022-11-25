@@ -138,7 +138,7 @@ rule souporcell_correlate_genotypes:
     threads: souporcell_dict["souporcell_correlations_threads"]
     params:
         out = output_dict["output_dir"],
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
+        script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/Assign_Indiv_by_Geno.R",
         cor_thresh = souporcell_dict["souporcell_genotype_correlation_threshold"]
     log: output_dict["output_dir"] + "/logs/souporcell_correlate_genotypes.{pool}.log"
     shell:

@@ -17,7 +17,7 @@ rule scds:
         disk_per_thread_gb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"]
     threads: scds_dict["scds_threads"]
     params:
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scds.R",
+        script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/scds.R",
         out = output_dict["output_dir"] + "/{pool}/scds/",
     log: output_dict["output_dir"] + "/logs/scds.{pool}.log"
     shell:

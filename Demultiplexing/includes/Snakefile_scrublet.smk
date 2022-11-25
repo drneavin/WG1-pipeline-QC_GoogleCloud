@@ -65,7 +65,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         threads: scrublet_dict["scrublet_threads"]
         params:
             out = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/",
-            script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/scrublet_pipeline.py",
+            script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/scrublet_pipeline.py",
             sim_dbl = sim_dbl,
             min_counts = min_counts,
             min_cells = min_cells,

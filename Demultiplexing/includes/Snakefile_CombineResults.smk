@@ -49,7 +49,7 @@ rule final_assignments:
     threads: CombineResults_dict["FinalAssignments_threads"]
     params:
         out = output_dict["output_dir"],
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/FinalBarcodeAssignments.R"
+        script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/FinalBarcodeAssignments.R"
     log: output_dict["output_dir"] + "/logs/final_assignments.{pool}.log"
     shell:
         """
@@ -118,7 +118,7 @@ rule expected_observed_numbers:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["expected_observed_numbers_memory"]
     threads: CombineResults_dict["expected_observed_numbers_threads"]
     params:
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/expected_observed_individuals_doublets.R",
+        script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/expected_observed_individuals_doublets.R",
         out = output_dict["output_dir"] + "/QC_figures/",
         basedir = output_dict["output_dir"]
     log: output_dict["output_dir"] + "/logs/expected_observed_numbers.log"
@@ -157,12 +157,12 @@ rule QC_plots:
         disk_per_thread_gb = lambda wildcards, attempt: attempt * CombineResults_dict["FinalQC_memory"]
     threads: CombineResults_dict["FinalQC_threads"]
     params:
-        script = "/opt/WG1-pipeline-QC/Demultiplexing/scripts/Singlet_QC_Figures.R",
+        script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/Singlet_QC_Figures.R",
         main_dir = output_dict["output_dir"],
         dirs10x = output_dict["output_dir"] + '/file_directories.txt',
         out = output_dict["output_dir"] + "/QC_figures/",
-        rb_genes = "/opt/WG1-pipeline-QC/Demultiplexing/Ribosomal_genes.txt",
-        mt_genes = "/opt/WG1-pipeline-QC/Demultiplexing/Mitochondrial_genes.txt"
+        rb_genes = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/Ribosomal_genes.txt",
+        mt_genes = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/Mitochondrial_genes.txt"
     log: output_dict["output_dir"] + "/logs/QC_plots.log"
     shell:
         """
