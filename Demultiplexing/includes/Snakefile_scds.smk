@@ -10,16 +10,16 @@ rule scds:
     input:
         matrix_dir = lambda wildcards: scrnaseq_libs_df["Matrix_Directories"][wildcards.pool],
     output: 
-        doublets= output_dict["output_dir"] + "/{pool}/scds/scds_doublets.txt",
-        variables = output_dict["output_dir"] + "/{pool}/scds/scds_variables.txt"
+        doublets= "results/{pool}/scds/scds_doublets.txt",
+        variables = "results/{pool}/scds/scds_variables.txt"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"]
+        mem_mb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"],
+        disk_mb=lambda wildcards, attempt: attempt * scds_dict["scds_memory"]
     threads: scds_dict["scds_threads"]
     params:
         script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/scds.R",
-        out = output_dict["output_dir"] + "/{pool}/scds/",
-    log: output_dict["output_dir"] + "/logs/scds.{pool}.log"
+        out = workflow.default_remote_prefix + "/results/{pool}/scds/",
+    log: "results/logs/scds.{pool}.log"
     shell:
         """
         echo {wildcards.pool} > {output.variables}
@@ -32,12 +32,12 @@ rule scds:
 
 rule scds_results_temp:
     input:
-        output_dict["output_dir"] + "/{pool}/scds/scds_doublets.txt"
+        "results/{pool}/scds/scds_doublets.txt"
     output:
-        output_dict["output_dir"] + "/{pool}/CombinedResults/scds_results.txt"
+        "results/{pool}/CombinedResults/scds_results.txt"
     resources:
-        mem_per_thread_gb=1,
-        disk_per_thread_gb=1
+        mem_mb=15000,
+        disk_mb=15000
     threads: 1
     shell:
         """

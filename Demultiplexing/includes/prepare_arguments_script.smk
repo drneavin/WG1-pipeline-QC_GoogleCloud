@@ -16,8 +16,8 @@ rule prepare_args:
     output:
         'file_directories.txt'
     resources:
-        mem_per_thread_gb = 4,
-        disk_per_thread_gb = 4
+        mem_mb=150000, 
+        disk_mb=150000
     threads: 1
     params:
         workflow.default_remote_prefix

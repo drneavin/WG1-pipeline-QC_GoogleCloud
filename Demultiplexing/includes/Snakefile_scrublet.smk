@@ -10,19 +10,23 @@ rule make_scrublet_selection_df:
     input:
         input_dict["samplesheet_filepath"]
     output:
-        output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"
+        "results/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"
     resources:
-        mem_per_thread_gb = 1,
-        disk_per_thread_gb = 1
+        mem_mb = 15000,
+        disk_mb = 15000
     threads: 1
-    log: output_dict["output_dir"] + "/logs/make_scrublet_selection_df.log"
+    log: "results/logs/make_scrublet_selection_df.log"
     shell:
         """
         awk 'BEGIN{{OFS=FS="\t"}}{{print $1 "\t"}}' {input} | sed "1s/.*/Pool\tscrublet_Percentile/" > {output} 2> {log}
         """
 
-if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"):
-    scrublet_selection = pd.read_csv(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv", sep = "\t")
+if bucket.blob("results/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv").exists():
+
+    blob_scrub = bucket.get_blob("results/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
+    downloaded_blob_scrub = blob_scrub.download_as_string()
+    scrublet_selection = pd.read_csv(BytesIO(downloaded_blob_scrub), sep = "\t")
+
     if scrublet_selection["scrublet_Percentile"].count() != len(scrublet_selection):
         ready = False
     elif scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection):
@@ -32,7 +36,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         sys.exit()
 
     if (scrublet_manual_dict["run_scrublet_manual"] == False) or (scrublet_manual_dict["run_scrublet_manual"] == True and scrublet_selection["scrublet_Percentile"].count() == len(scrublet_selection)):
-        log = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/default_run_variables.txt"
+        log = workflow.default_remote_prefix + "results/{pool}/scrublet_{pctl}/default_run_variables.txt"
         sim_dbl = scrublet_extra_dict["sim_dbl"]
         min_counts = scrublet_extra_dict["min_counts"]
         min_cells = scrublet_extra_dict["min_cells"]
@@ -40,7 +44,7 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         step = "default"
         scrublet_doublet_threshold = None
     elif (scrublet_manual_dict["run_scrublet_manual"] == True): ### This deals with the possibility that the user still indicated that defaults need to be run but have completed the dataframe 
-        log = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/manual_rerun_variables.txt"
+        log = workflow.default_remote_prefix + "/results/{pool}/scrublet_{pctl}/manual_rerun_variables.txt"
         step = "manual"
         sim_dbl = scrublet_extra_dict["sim_dbl"]
         min_counts = scrublet_extra_dict["min_counts"]
@@ -54,17 +58,17 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
         input:
             matrix = lambda wildcards: scrnaseq_libs_df["Matrix_Directories"][wildcards.pool],
             barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
-            df = ancient(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
+            df = ancient("results/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv")
         output:
-            results = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/scrublet_results.txt",
+            results = "results/{pool}/scrublet_{pctl}/scrublet_results.txt",
             log = log,
-            figure = report(output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}")
+            figure = report("results/{pool}/scrublet_{pctl}/doublet_score_histogram.png", category = "Scrublet", caption = "../report_captions/scrublet.rst", subcategory = "{pool}")
         resources:
-            mem_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
-            disk_per_thread_gb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
+            mem_mb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
+            disk_mb = lambda wildcards, attempt: attempt * scrublet_dict["scrublet_memory"],
         threads: scrublet_dict["scrublet_threads"]
         params:
-            out = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/",
+            out = workflow.default_remote_prefix + "/results/{pool}/scrublet_{pctl}/",
             script = "/opt/WG1-pipeline-QC_GoogleCloud/Demultiplexing/scripts/scrublet_pipeline.py",
             sim_dbl = sim_dbl,
             min_counts = min_counts,
@@ -119,17 +123,17 @@ if os.path.exists(output_dict["output_dir"] + "/manual_selections/scrublet/scrub
 
     rule scrublet_check_user_input:
         input:
-            df = ancient(output_dict["output_dir"] + "/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"),
-            results = output_dict["output_dir"] + "/{pool}/scrublet_{pctl}/scrublet_results.txt"
+            df = ancient("results/manual_selections/scrublet/scrublet_percentile_manual_selection.tsv"),
+            results = "results/{pool}/scrublet_{pctl}/scrublet_results.txt"
         output:
-            output_dict["output_dir"] + "/{pool}/CombinedResults/{pctl}_scrublet_results.txt"
+            "results/{pool}/CombinedResults/{pctl}_scrublet_results.txt"
         resources:
-            mem_per_thread_gb=lambda wildcards, attempt: attempt * 1,
-            disk_per_thread_gb=lambda wildcards, attempt: attempt * 1
+            mem_mb=lambda wildcards, attempt: attempt * 15000,
+            disk_mb=lambda wildcards, attempt: attempt * 15000
         threads: 1
         params:
             ready = ready
-        log: output_dict["output_dir"] + "/logs/scrublet_check_user_input.{pool}_{pctl}.log"
+        log: "results/logs/scrublet_check_user_input.{pool}_{pctl}.log"
         shell:
             """
             if [ {params.ready} == "True" ]

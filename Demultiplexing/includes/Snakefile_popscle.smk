@@ -12,15 +12,19 @@ rule popscle_pileup:
         vcf = input_dict["snp_genotypes_filepath"],
         barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
         bam = lambda wildcards: scrnaseq_libs_df["Bam_Files"][wildcards.pool],
+        files = 'file_directories.txt',
         individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     output:
-        output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz"
+        "results/{pool}/popscle/pileup/pileup.var.gz",
+        "results/{pool}/popscle/pileup/pileup.cel.gz",
+        "results/{pool}/popscle/pileup/pileup.plp.gz",
+        "results/{pool}/popscle/pileup/pileup.umi.gz"
     resources:
-        mem_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"],
-        disk_per_thread_gb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"]
+        mem_mb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"],
+        disk_mb=lambda wildcards, attempt: attempt * popscle_dict["pileup_memory"]
     threads: popscle_dict["pileup_threads"]
     params:
-        out = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
+        out = workflow.default_remote_prefix + "/results/{pool}/popscle/pileup/pileup",
         tag_group = popscle_dict["tag_group"],
         tag_UMI = popscle_dict["tag_UMI"],
         cap_BQ = popscle_extra_dict["cap_BQ"],
@@ -30,7 +34,7 @@ rule popscle_pileup:
         excl_flag = popscle_extra_dict["excl_flag"],
         min_total = popscle_extra_dict["min_total"],
         min_snp = popscle_extra_dict["min_snp"]
-    log: output_dict["output_dir"] + "/logs/popscle_pileup.{pool}.log"
+    log: "results/logs/popscle_pileup.{pool}.log"
     shell:
         """
         popscle dsc-pileup \
@@ -53,19 +57,22 @@ rule popscle_pileup:
 ##### Popscle Demuxlet Demultiplexing #####
 rule popscle_demuxlet:
     input:
-        pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup.var.gz",
+        pileup_cel = "results/{pool}/popscle/pileup/pileup.cel.gz",
+        pileup_plp = "results/{pool}/popscle/pileup/pileup.plp.gz",
+        pileup_umi = "results/{pool}/popscle/pileup/pileup.umi.gz",
+        pileup_var = "results/{pool}/popscle/pileup/pileup.var.gz",
         snps = input_dict["snp_genotypes_filepath"],
         barcodes = lambda wildcards: scrnaseq_libs_df["Barcode_Files"][wildcards.pool],
         individuals = lambda wildcards: scrnaseq_libs_df["Individuals_Files"][wildcards.pool]
     output:
-        output_dict["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT.best"
+        "results/{pool}/popscle/demuxlet/demuxletOUT.best"
     resources:
-        mem_per_thread_gb = lambda wildcards, attempt: attempt * popscle_dict["demuxlet_memory"],
-        disk_per_thread_gb = lambda wildcards, attempt: attempt * popscle_dict["demuxlet_threads"]
+        mem_mb = lambda wildcards, attempt: attempt * popscle_dict["demuxlet_memory"],
+        disk_mb = lambda wildcards, attempt: attempt * popscle_dict["demuxlet_memory"]
     threads: popscle_dict["demuxlet_threads"]
     params:
-        pileup = output_dict["output_dir"] + "/{pool}/popscle/pileup/pileup",
-        out = output_dict["output_dir"] + "/{pool}/popscle/demuxlet/",
+        pileup = workflow.default_remote_prefix + "/results/{pool}/popscle/pileup/pileup",
+        out = workflow.default_remote_prefix + "/results/{pool}/popscle/demuxlet/",
         field = popscle_dict["genotype_field"],
         geno_error_offset = popscle_extra_dict["geno_error_offset"],
         geno_error_coeff = popscle_extra_dict["geno_error_coeff"],
@@ -80,7 +87,7 @@ rule popscle_demuxlet:
         excl_flag = popscle_extra_dict["excl_flag"],
         min_total = popscle_extra_dict["min_total"],
         min_snp = popscle_extra_dict["min_snp"]
-    log: output_dict["output_dir"] + "/logs/popscle_demuxlet.{pool}.log"
+    log: "results/logs/popscle_demuxlet.{pool}.log"
     shell:
         """
         popscle demuxlet \
@@ -112,14 +119,14 @@ rule popscle_demuxlet:
 ###################################################
 rule demuxlet_results_temp:
     input:
-        demuxlet = output_dict["output_dir"] + "/{pool}/popscle/demuxlet/demuxletOUT.best"
+        demuxlet = "results/{pool}/popscle/demuxlet/demuxletOUT.best"
     output:
-        output_dict["output_dir"] + "/{pool}/CombinedResults/demuxlet_results.txt"
+        "results/{pool}/CombinedResults/demuxlet_results.txt"
     resources:
-        mem_per_thread_gb=1,
-        disk_per_thread_gb=1
+        mem_mb=15000,
+        disk_mb=15000
     threads: 1
-    log: output_dict["output_dir"] + "/logs/demuxlet_results_temp.{pool}.log"
+    log: "results/logs/demuxlet_results_temp.{pool}.log"
     shell:
         """
             awk 'BEGIN{{OFS=FS="\\t"}}{{print $2,$3,$5,$13,$14,$19,$20}}' {input.demuxlet} | \
