@@ -1,3 +1,4 @@
+.libPaths("/usr/local/lib/R/site-library")
 library(tidyverse)
 
 
