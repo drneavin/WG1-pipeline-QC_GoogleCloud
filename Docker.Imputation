@@ -159,6 +159,7 @@ RUN R --slave -e 'install.packages("ggpubr", repos = "http://cran.us.r-project.o
 RUN R --slave -e 'install.packages("magrittr", repos = "http://cran.us.r-project.org")'
 RUN R --slave -e 'install.packages("cluster", repos = "http://cran.us.r-project.org")'
 RUN R --slave -e 'install.packages("cowplot", repos = "http://cran.us.r-project.org")'
+RUN R --slave -e 'install.packages("caret", repos = "http://cran.us.r-project.org")'
 
 
 
@@ -222,7 +223,7 @@ RUN cd /opt && \
     ./gradlew shadowJar
 
 RUN cd /opt && \
-    git clone --single-branch --branch v1.0.0 https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
+    git clone --single-branch --branch v1.0.2 https://github.com/sc-eQTLgen-consortium/WG1-pipeline-QC.git
 
 
 RUN cd /opt && \
